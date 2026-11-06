@@ -1,14 +1,15 @@
 # proto_codecare_scripts
 Collections of shared scripts for Proto CodeCare
 
-## setup-github-repo.sh
+## Structure
 
-Applies standard settings to an existing **public** GitHub repo: squash-only merges, a `main` ruleset, read-only `GITHUB_TOKEN`, Dependabot, secret scanning, and more. Needs `gh` logged in as a repo admin. Safe to re-run.
+Scripts are grouped by area (`<area>/<tool>/`). Each tool folder is self-contained, with its own README, examples, and tests.
 
-```bash
-./setup-github-repo.sh --repo OWNER/NAME            # prompts for the rest
-./setup-github-repo.sh --repo OWNER/NAME --yes --approvals 1 --secrets-file .env.github
-./setup-github-repo.sh --help
+```txt
+version-control/
+  github-setup-repo/     Apply standard settings to a GitHub repo
 ```
 
-For the secrets file format, see `.env.github.example`. Run the offline test with `bash tests/test-setup-github-repo.sh`.
+## Conventions
+
+- `.env*` files are gitignored in every folder. Commit only `*.example` templates.
