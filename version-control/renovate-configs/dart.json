@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["./allowlist"],
+  "packageRules": [
+    {
+      "description": "Pin exact versions for registry-backed pub dependencies",
+      "matchManagers": ["pub"],
+      "matchDatasources": ["dart"],
+      "rangeStrategy": "pin"
+    },
+    {
+      "description": "Automerge patch updates of test-only utilities. very_good_analysis is excluded: its releases can add lint rules that fail analyze.",
+      "matchManagers": ["pub"],
+      "matchPackageNames": ["mocktail"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Group the bloc package family for coordinated review",
+      "matchManagers": ["pub"],
+      "matchPackageNames": ["bloc", "flutter_bloc", "bloc_test", "bloc_lint", "bloc_tools"],
+      "groupName": "bloc packages",
+      "automerge": false
+    },
+    {
+      "description": "Group Firebase packages for coordinated review",
+      "matchManagers": ["pub"],
+      "matchPackageNames": ["/^firebase_/"],
+      "groupName": "firebase packages",
+      "automerge": false
+    },
+    {
+      "description": "Group Widgetbook packages for coordinated review",
+      "matchManagers": ["pub"],
+      "matchPackageNames": ["/^widgetbook/"],
+      "groupName": "widgetbook packages",
+      "automerge": false
+    }
+  ]
+}

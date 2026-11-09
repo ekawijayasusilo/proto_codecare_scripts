@@ -1,0 +1,10 @@
+// Copy to .github/renovate.json5 in a Flutter client repo. Keep both refs on the same tag.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "github>ekawijayasusilo/proto_codecare_scripts//version-control/renovate-configs/default#v1.0.0", // x-release-please-version
+    "github>ekawijayasusilo/proto_codecare_scripts//version-control/renovate-configs/flutter.json5#v1.0.0", // x-release-please-version
+  ],
+  // Repo-specific additions go below, e.g. local pub workspace packages that are not on pub.dev:
+  // ignoreDeps: ["my_local_package"],
+}

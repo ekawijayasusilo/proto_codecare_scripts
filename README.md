@@ -8,6 +8,7 @@ Scripts are grouped by area (`<area>/<tool>/`). Each tool folder is self-contain
 ```txt
 version-control/
   github-setup-repo/     Apply standard settings to a GitHub repo
+  renovate-configs/      Renovate presets, runner config, Android sync script
 ```
 
 ## Conventions

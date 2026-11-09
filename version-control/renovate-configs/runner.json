@@ -1,0 +1,12 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "platform": "github",
+  "autodiscover": true,
+  "onboarding": false,
+  "requireConfig": "required",
+  "allowedCommands": [
+    "^flutter pub get$",
+    "^curl -fsSL -o /tmp/sync-android-tooling\\.sh https://raw\\.githubusercontent\\.com/ekawijayasusilo/proto_codecare_scripts/v\\d+\\.\\d+\\.\\d+/version-control/renovate-configs/scripts/sync-android-tooling\\.sh$",
+    "^bash /tmp/sync-android-tooling\\.sh$"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits"],
+  "timezone": "Asia/Jakarta",
+  "schedule": ["before 6am"],
+  "minimumReleaseAge": "7 days",
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": false,
+  "labels": ["dependencies"],
+  "automergeStrategy": "squash",
+  "vulnerabilityAlerts": {
+    "description": "Covers GitHub Actions, npm, Maven and similar ecosystems. Renovate cannot act on pub (Dart/Flutter) alerts, so Flutter repos rely on Dependabot security updates (repo setting + a dependabot.yaml with open-pull-requests-limit: 0) for security PRs.",
+    "enabled": true,
+    "minimumReleaseAge": null,
+    "automerge": false,
+    "labels": ["security", "dependencies"]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["./dart"],
+  packageRules: [
+    {
+      description: "Update the exact Dart and Flutter SDK pins in one PR: either one alone fails pub get. No age gate for either: the dart-version datasource has no release timestamps, and gating only Flutter would let Dart arrive alone first. Review manually that the Dart version matches the one bundled with the new Flutter.",
+      matchDatasources: ["dart-version", "flutter-version"],
+      groupName: "dart and flutter sdk",
+      automerge: false,
+      minimumReleaseAge: null,
+    },
+    {
+      description: "Renovate only updates a pubspec.lock next to the changed pubspec.yaml, so bumps in pub workspace members leave the root lockfile stale. Re-resolve from the package's directory (pub resolves the whole workspace from any member). Commands must be allowed in runner.json.",
+      matchManagers: ["pub"],
+      postUpgradeTasks: {
+        commands: ["flutter pub get"],
+        workingDirTemplate: "{{packageFileDir}}",
+        fileFilters: ["**/pubspec.lock"],
+        installTools: { flutter: {} },
+      },
+    },
+    {
+      description: "Flutter SDK bumps also sync Android tooling (AGP, Kotlin, Gradle) to the new SDK's template versions. This rule must repeat the pub get command: a later rule's commands replace the earlier list. Runs once per pubspec with the pin; the script is idempotent. Commands must be allowed in runner.json.",
+      matchDatasources: ["flutter-version"],
+      postUpgradeTasks: {
+        commands: [
+          "flutter pub get",
+          "curl -fsSL -o /tmp/sync-android-tooling.sh https://raw.githubusercontent.com/ekawijayasusilo/proto_codecare_scripts/v1.0.0/version-control/renovate-configs/scripts/sync-android-tooling.sh", // x-release-please-version
+          "bash /tmp/sync-android-tooling.sh",
+        ],
+        workingDirTemplate: "{{packageFileDir}}",
+        fileFilters: [
+          "**/pubspec.lock",
+          "android/settings.gradle.kts",
+          "android/gradle/wrapper/gradle-wrapper.properties",
+        ],
+        installTools: { flutter: {} },
+      },
+    },
+    {
+      description: "Generic Gradle updates ignore the range the Flutter SDK supports (they proposed AGP 9.5 / Kotlin 2.4.21 / Gradle 9.8.2 for Flutter 3.47, all above its maximum). Android tooling is synced by the rule above instead.",
+      matchManagers: ["gradle", "gradle-wrapper"],
+      enabled: false,
+    },
+  ],
+}

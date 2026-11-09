@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "packageRules": [
+    {
+      "description": "Own releases (proto_codecare workflows, proto_codecare_scripts presets) are controlled by us: skip the 7-day minimumReleaseAge so they arrive on the next run",
+      "matchDepNames": ["ekawijayasusilo/proto_codecare", "ekawijayasusilo/proto_codecare_scripts"],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Automerge patch releases of our own repos wherever they are referenced: workflow stubs, preset refs, the runner's globalExtends tag",
+      "matchDepNames": ["ekawijayasusilo/proto_codecare", "ekawijayasusilo/proto_codecare_scripts"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ]
+}

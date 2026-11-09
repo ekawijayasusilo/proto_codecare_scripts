@@ -1,0 +1,4 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["local>ekawijayasusilo/proto_codecare_scripts//version-control/renovate-configs/default"]
+}

@@ -1,2 +1,5 @@
 .env*
 !.env*.example
+
+# Local working docs (plans, handoffs, notes)
+temp-docs/

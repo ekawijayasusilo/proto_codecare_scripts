@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "packageRules": [
+    {
+      "description": "Automerge patch and minor updates for explicitly allowlisted pub packages",
+      "matchManagers": ["pub"],
+      "matchPackageNames": ["__renovate_allowlist_empty__"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ]
+}
