@@ -18,4 +18,3 @@ Applies standard settings to an existing **public** GitHub repo: squash-only mer
 |---|---|
 | `setup-github-repo.sh` | The script |
 | `.env.github.example` | Secrets/variables file format. Copy to `.env.github` (gitignored) |
-| `tests/test-setup-github-repo.sh` | Offline test using a stub `gh`: `bash tests/test-setup-github-repo.sh` |
