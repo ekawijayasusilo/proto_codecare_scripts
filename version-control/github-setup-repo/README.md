@@ -8,6 +8,8 @@ Applies standard settings to an existing **public** GitHub repo: squash-only mer
 ./setup-github-repo.sh --help
 ```
 
+`--dependabot` (on by default) also enables the **dependency graph**. GitHub's API has no separate switch for it: the graph comes with Dependabot alerts.
+
 > **Note:** Re-running rewrites the rulesets from the flags given. Options you leave out fall back to their defaults (e.g. 0 approvals), so pass the same flags each time.
 
 ## Files

@@ -18,7 +18,8 @@ With --yes (or no terminal) their defaults are used instead.
   --[no-]template            Mark as template repository            (default: no)
   --approvals N              Required PR approvals, 0-10             (default: 0)
   --[no-]codeowners          Require review from code owners         (default: no)
-  --[no-]dependabot          Dependabot alerts + security updates    (default: yes)
+  --[no-]dependabot          Dependency graph + Dependabot alerts    (default: yes)
+                             + security updates
   --[no-]secret-scanning     Secret scanning + push protection       (default: yes)
   --[no-]codeql              CodeQL default setup                    (default: no)
   --[no-]tag-protection      Protect v* tags from delete/move        (default: no)
@@ -243,7 +244,7 @@ main() {
   ask APPROVALS "Required PR approvals (0-10)?" 0
   [[ $APPROVALS =~ ^([0-9]|10)$ ]] || die "--approvals must be 0-10, got '$APPROVALS'"
   ask_bool CODEOWNERS "Require code owner review? (y/n)" n
-  ask_bool DEPENDABOT "Enable Dependabot alerts + security updates? (y/n)" y
+  ask_bool DEPENDABOT "Enable dependency graph + Dependabot alerts + security updates? (y/n)" y
   ask_bool SECRET_SCANNING "Enable secret scanning + push protection? (y/n)" y
   ask_bool CODEQL "Enable CodeQL default setup? (y/n)" n
   ask_bool TAG_PROTECTION "Protect v* release tags? (y/n)" n
@@ -280,9 +281,13 @@ main() {
   gh api -X PUT "repos/$REPO/private-vulnerability-reporting" --silent
 
   if $DEPENDABOT; then
-    step "Dependabot alerts + security updates"
+    step "Dependency graph + Dependabot alerts + security updates"
+    # vulnerability-alerts enables alerts and the dependency graph together (no separate API switch);
+    # it must come before automated-security-fixes.
     gh api -X PUT "repos/$REPO/vulnerability-alerts" --silent
     gh api -X PUT "repos/$REPO/automated-security-fixes" --silent
+    gh api "repos/$REPO/vulnerability-alerts" --silent ||
+      warn "Dependency graph/Dependabot alerts still look disabled. Check https://github.com/$REPO/settings/security_analysis"
   fi
 
   if $SECRET_SCANNING; then
