@@ -29,7 +29,7 @@
       matchDatasources: ["flutter-version"],
       postUpgradeTasks: {
         commands: [
-          "curl -fsSL -o /tmp/sync-android-tooling.sh https://raw.githubusercontent.com/ekawijayasusilo/proto_codecare_scripts/v1.0.0/version-control/renovate-configs/scripts/sync-android-tooling.sh", // x-release-please-version
+          "curl -fsSL -o /tmp/sync-android-tooling.sh https://raw.githubusercontent.com/ekawijayasusilo/proto_codecare_scripts/v1.1.0/version-control/renovate-configs/scripts/sync-android-tooling.sh", // x-release-please-version
           "bash /tmp/sync-android-tooling.sh",
           "flutter pub get",
         ],

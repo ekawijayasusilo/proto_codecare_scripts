@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/ekawijayasusilo/proto_codecare_scripts/compare/v1.0.0...v1.1.0) (2026-11-26)
+
+
+### Features
+
+* **renovate-configs:** Dart SDK pin follows Flutter; Gradle updates back on ([#5](https://github.com/ekawijayasusilo/proto_codecare_scripts/issues/5)) ([20e723e](https://github.com/ekawijayasusilo/proto_codecare_scripts/commit/20e723e84fce1f2da52c3e6e62aa48811fdb1950))
+
 ## 1.0.0 (2026-11-09)
 
 
