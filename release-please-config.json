@@ -3,14 +3,15 @@
   "bootstrap-sha": "2738b7f467bde1b997664c64aa40d57c3867a157",
   "draft-pull-request": true,
   "packages": {
-    ".": {
+    "version-control/renovate-configs": {
       "release-type": "simple",
+      "component": "renovate-configs",
       "initial-version": "1.0.0",
       "include-v-in-tag": true,
       "include-component-in-tag": false,
       "extra-files": [
-        "version-control/renovate-configs/flutter.json5",
-        "version-control/renovate-configs/examples/flutter-app.renovate.json5"
+        "flutter.json5",
+        "examples/flutter-app.renovate.json5"
       ]
     }
   }

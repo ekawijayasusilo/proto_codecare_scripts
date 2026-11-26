@@ -14,3 +14,6 @@ version-control/
 ## Conventions
 
 - `.env*` files are gitignored in every folder. Commit only `*.example` templates.
+- Releases are per folder (release-please packages). Only `version-control/renovate-configs` is released for now
+  (tags `vX.Y.Z`); commits elsewhere never trigger a release. A new released tool gets its own package with
+  component tags (e.g. `fastlane-v1.0.0`).
