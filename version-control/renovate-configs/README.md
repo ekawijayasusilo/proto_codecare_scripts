@@ -2,7 +2,7 @@
 
 Shared Renovate policy for all Proto CodeCare client repos. The Renovate runner workflow lives in
 [`proto_codecare`](https://github.com/ekawijayasusilo/proto_codecare). This folder holds what it uses: the presets client
-repos extend, the runner's global config, and the Android tooling sync script.
+repos extend, the runner's global config, and the SDK sync script.
 
 ```txt
 renovate-configs/
@@ -107,8 +107,8 @@ Repos that commit `.github/workflows/actions.lock` (e.g. swe_flutter_template) n
 to the Dart version that Flutter release bundles (`dart_sdk_version` of the stable entry in
 `https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json`). It sets the version even when
 that is lower, since Dart must equal the bundled one. All pubspecs are fixed in one run because `flutter pub get` in a
-workspace resolves every member. A range such as `^3.14.0` is left alone; a Flutter version missing from the file
-fails the script.
+workspace resolves every member. A range such as `^3.14.0` is left alone, and so is a pubspec without a Flutter pin
+(a pure-Dart workspace member). A Flutter version missing from the file fails the script.
 
 **Android.** It raises three versions to what the pinned Flutter SDK's app template uses. The source of truth is
 `flutter/flutter/<version>/packages/flutter_tools/lib/src/android/gradle_utils.dart`.
@@ -119,16 +119,19 @@ fails the script.
 | `templateKotlinGradlePluginVersion` | `org.jetbrains.kotlin.android` in `android/settings.gradle.kts` |
 | `templateDefaultGradleVersion` | `distributionUrl` in `android/gradle/wrapper/gradle-wrapper.properties` |
 
-- Reads the exact `environment.flutter` pin from the root `pubspec.yaml`. Works from any folder in the repo.
+- The Android part reads the exact `environment.flutter` pin from the root `pubspec.yaml`. Works from any folder in
+  the repo.
 - Only raises Android versions, so a newer manual bump is kept. Re-running is a no-op.
 - Skips the Android part in repos without `android/`. Fails, with a message, on Groovy-only builds, a missing
   pattern, a renamed Flutter constant or a pinned `distributionSha256Sum`. Renovate then shows an "artifact update
   problem" on the PR.
 
-Local use after a manual Flutter bump, from the client repo:
+Local use after a manual Flutter bump, from the client repo. Run `flutter pub get` afterwards: the Dart pin may
+have changed.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ekawijayasusilo/proto_codecare_scripts/vX.Y.Z/version-control/renovate-configs/scripts/sync-android-tooling.sh | bash
+flutter pub get
 ```
 
 > **Warning:** a version bump alone isn't always enough. AGP 9 also needs build-script changes (drop
