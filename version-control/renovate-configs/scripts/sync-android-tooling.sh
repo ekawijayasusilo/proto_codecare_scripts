@@ -1,12 +1,59 @@
 #!/usr/bin/env bash
-# Raise AGP, Kotlin and Gradle in a Flutter client repo to the versions the pinned Flutter SDK's app template uses.
+# Sync a Flutter client repo to its pinned Flutter SDK:
+# - Dart: set environment.sdk in every pubspec that pins Flutter to the Dart version that Flutter release bundles.
+# - Android: raise AGP, Kotlin and Gradle to the versions the Flutter SDK's app template uses (never lowers them).
 # Renovate runs it on Flutter SDK bumps (see ../flutter.json5); run it by hand after a manual bump.
-# Run from anywhere inside the client repo. Needs bash, git, curl, awk, sed, sort. Never lowers a version.
+# Run from anywhere inside the client repo. Needs bash, git, curl, awk, sed, sort.
 set -euo pipefail
 
 die() { echo "sync-android-tooling: $*" >&2; exit 1; }
 
+# env_value PUBSPEC KEY: environment.KEY, quotes stripped (the flutter: key under dependencies has no version).
+env_value() {
+  awk -v key="$2:" '
+    { sub(/\r$/, "") }
+    /^environment:/ { env = 1; next }
+    env && /^[^[:space:]#]/ { exit }
+    env && $1 == key { gsub(/["\047]/, "", $2); print $2; exit }
+  ' "$1"
+}
+exact() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; }
+
 cd "$(git rev-parse --show-toplevel)"
+
+# Dart runs first: the Android part may exit early. Every pubspec, not only the one Renovate is processing:
+# pub get in a workspace resolves all members, so one stale sdk: pin fails it.
+# Set, not raise: a Dart-only hotfix (3.14.1) must go back to the bundled version (3.14.0).
+# shortcut: pubspecs that pin sdk: but not flutter: (pure-Dart workspace members) are not synced; add them if a client has one.
+RELEASES_URL=https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json
+releases=""
+while IFS= read -r pubspec; do
+  pin_flutter=$(env_value "$pubspec" flutter)
+  exact "$pin_flutter" || continue
+  have_dart=$(env_value "$pubspec" sdk)
+  if ! exact "$have_dart"; then
+    echo "Dart: sdk '$have_dart' in $pubspec is not an exact X.Y.Z, skipping"
+    continue
+  fi
+  [[ -n $releases ]] || releases=$(curl -fsSL "$RELEASES_URL") || die "cannot fetch $RELEASES_URL"
+  # Pretty-printed JSON, one key per line. Beta entries read "3.15.0 (build ...)": keep the first token.
+  want_dart=$(awk -F'"' -v want="$pin_flutter" '
+    /\{/ { ch = v = d = "" }
+    $2 == "channel" { ch = $4 }
+    $2 == "version" { v = $4 }
+    $2 == "dart_sdk_version" { split($4, a, " "); d = a[1] }
+    /\}/ && ch == "stable" && v == want && d != "" { print d; exit }
+  ' <<<"$releases")
+  [[ -n $want_dart ]] || die "Flutter $pin_flutter (from $pubspec) not found on the stable channel of $RELEASES_URL"
+  if [[ $have_dart == "$want_dart" ]]; then
+    echo "Dart $have_dart already matches Flutter $pin_flutter ($pubspec)"
+    continue
+  fi
+  sed -i.bak -E "/^environment:/,/^[^[:space:]#]/s/^([[:space:]]+sdk:[[:space:]]*[\"']?)${have_dart//./\\.}/\1$want_dart/" "$pubspec" &&
+    rm "$pubspec.bak"
+  echo "Dart $have_dart → $want_dart ($pubspec)"
+done < <(git ls-files ':(glob)**/pubspec.yaml')
+
 if [[ ! -d android ]]; then
   echo "no android/, skipping"
   exit 0
@@ -18,14 +65,8 @@ WRAPPER=android/gradle/wrapper/gradle-wrapper.properties
 [[ -f $SETTINGS ]] || die "$SETTINGS not found"
 [[ -f $WRAPPER ]] || die "$WRAPPER not found"
 
-# environment.flutter only: the flutter: key under dependencies has no version.
-flutter=$(awk '
-  { sub(/\r$/, "") }
-  /^environment:/ { env = 1; next }
-  env && /^[^[:space:]#]/ { exit }
-  env && $1 == "flutter:" { gsub(/["\047]/, "", $2); print $2; exit }
-' pubspec.yaml)
-[[ $flutter =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+flutter=$(env_value pubspec.yaml flutter)
+exact "$flutter" ||
   die "environment.flutter in pubspec.yaml must be an exact X.Y.Z, got '$flutter'"
 
 url="https://raw.githubusercontent.com/flutter/flutter/$flutter/packages/flutter_tools/lib/src/android/gradle_utils.dart"
