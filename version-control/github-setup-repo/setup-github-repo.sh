@@ -24,6 +24,8 @@ With --yes (or no terminal) their defaults are used instead.
                              + security updates
   --[no-]secret-scanning     Secret scanning + push protection       (default: yes)
   --[no-]codeql              CodeQL default setup                    (default: no)
+  --[no-]code-scanning-gate  Block merges on high/critical CodeQL    (default: no)
+                             alerts. Needs CodeQL running on PRs
   --[no-]tag-protection      Protect v* tags from delete/move        (default: no)
   --required-checks "A,B"    Required status checks: GitHub Actions  (default: keep current)
                              check names, set exactly
@@ -156,8 +158,13 @@ checks_json() {
 main_ruleset() { # WITH_MERGE_QUEUE(true|false)
   # Stale-approval guards only mean something when approvals are required;
   # with 0 approvals they could block a solo maintainer.
-  local guards=false merge_queue="" checks=""
+  local guards=false merge_queue="" checks="" code_scanning=""
   if ((APPROVALS > 0)); then guards=true; fi
+  if $CODE_SCANNING_GATE; then
+    code_scanning=',
+    {"type": "code_scanning", "parameters": {"code_scanning_tools": [
+      {"tool": "CodeQL", "security_alerts_threshold": "high_or_higher", "alerts_threshold": "errors"}]}}'
+  fi
   # Left out, the current checks are kept by upsert_ruleset.
   if [[ -n $REQUIRED_CHECKS ]]; then
     checks=',
@@ -189,7 +196,7 @@ main_ruleset() { # WITH_MERGE_QUEUE(true|false)
       "dismiss_stale_reviews_on_push": $guards,
       "require_last_push_approval": $guards,
       "required_review_thread_resolution": true,
-      "allowed_merge_methods": ["squash"]}}$checks$merge_queue
+      "allowed_merge_methods": ["squash"]}}$checks$code_scanning$merge_queue
   ]
 }
 EOF
@@ -236,7 +243,7 @@ setup_main_ruleset() {
 }
 
 main() {
-  REPO="" TEMPLATE="" APPROVALS="" CODEOWNERS="" DEPENDABOT="" SECRET_SCANNING="" CODEQL="" TAG_PROTECTION="" REQUIRED_CHECKS="" SECRETS_FILE="" YES=false
+  REPO="" TEMPLATE="" APPROVALS="" CODEOWNERS="" DEPENDABOT="" SECRET_SCANNING="" CODEQL="" CODE_SCANNING_GATE="" TAG_PROTECTION="" REQUIRED_CHECKS="" SECRETS_FILE="" YES=false
   local secrets_flag=false
   while (($#)); do
     case $1 in
@@ -252,6 +259,8 @@ main() {
       --no-secret-scanning) SECRET_SCANNING=false ;;
       --codeql) CODEQL=true ;;
       --no-codeql) CODEQL=false ;;
+      --code-scanning-gate) CODE_SCANNING_GATE=true ;;
+      --no-code-scanning-gate) CODE_SCANNING_GATE=false ;;
       --tag-protection) TAG_PROTECTION=true ;;
       --no-tag-protection) TAG_PROTECTION=false ;;
       --required-checks) REQUIRED_CHECKS=${2:?--required-checks needs a value}; shift ;;
@@ -286,6 +295,7 @@ main() {
   ask_bool DEPENDABOT "Enable dependency graph + Dependabot alerts + security updates? (y/n)" y
   ask_bool SECRET_SCANNING "Enable secret scanning + push protection? (y/n)" y
   ask_bool CODEQL "Enable CodeQL default setup? (y/n)" n
+  ask_bool CODE_SCANNING_GATE "Block merges on high/critical CodeQL alerts? (y/n)" n
   ask_bool TAG_PROTECTION "Protect v* release tags? (y/n)" n
   ask REQUIRED_CHECKS "Required status checks, comma-separated (blank = keep current)?" ""
   if [[ -n $REQUIRED_CHECKS && $REQUIRED_CHECKS != *[![:space:],]* ]]; then
