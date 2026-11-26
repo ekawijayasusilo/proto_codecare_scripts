@@ -44,8 +44,21 @@
       },
     },
     {
-      description: "Generic Gradle updates ignore the range the Flutter SDK supports (they proposed AGP 9.5 / Kotlin 2.4.21 / Gradle 9.8.2 for Flutter 3.47, all above its maximum). Android tooling is synced by the rule above instead.",
-      matchManagers: ["gradle", "gradle-wrapper"],
+      description: "The Gradle wrapper is synced to the Flutter SDK's template version by the rule above. Generic updates ignore the range Flutter supports (they proposed Gradle 9.8.2 for Flutter 3.47, above its maximum).",
+      matchManagers: ["gradle-wrapper"],
+      enabled: false,
+    },
+    {
+      description: "Gradle updates stay on except for what the Flutter SDK dictates. AGP and org.jetbrains.kotlin.android are synced by the rule above (generic updates proposed AGP 9.5 / Kotlin 2.4.21 for Flutter 3.47, above its maximum). Other Kotlin plugins and libraries (org.jetbrains.kotlin.plugin.*, kotlin-stdlib) are skipped too but not synced: bump them by hand with Kotlin. dev.flutter.* ships with the Flutter SDK and has no Maven release.",
+      matchManagers: ["gradle"],
+      matchDepNames: [
+        "com.android.application",
+        "com.android.library",
+        "com.android.tools.build:gradle",
+        "org.jetbrains.kotlin.*",
+        "org.jetbrains.kotlin:*",
+        "dev.flutter.*",
+      ],
       enabled: false,
     },
   ],

@@ -32,7 +32,7 @@ A Flutter repo can copy [`examples/flutter-app.renovate.json5`](examples/flutter
 | `default.json` | preset | Entry point: `base` + `github-actions` | Every repo |
 | `base.json` | preset | Shared policy: `config:recommended`, semantic commits, schedule (before 6am Jakarta), 7-day age, dashboard, alerts | Via `default` |
 | `github-actions.json` | preset | Own `proto_codecare` / `proto_codecare_scripts` refs: patch automerge, no age gate | Via `default` |
-| `flutter.json5` | preset | Flutter rules: SDK group, workspace lockfile fix, Android tooling sync, Gradle off. Extends `dart` | Flutter apps and packages |
+| `flutter.json5` | preset | Flutter rules: SDK group, workspace lockfile fix, SDK sync, Gradle on except Flutter-owned tooling. Extends `dart` | Flutter apps and packages |
 | `dart.json` | preset | Dart rules: pin, test-utility automerge, package-family groups. Extends `allowlist` | Pure Dart repos (Flutter repos get it via `flutter`) |
 | `allowlist.json` | preset | Named pub packages whose patch/minor updates automerge | Via `dart` |
 | `runner.json` | **global** preset | Runner-only options incl. `allowedCommands` | Only the runner, via `globalExtends`. Never in `extends` |
@@ -46,7 +46,11 @@ Notable behaviour:
 - **Pub workspaces:** after any pub bump Renovate runs `flutter pub get` in the package's folder, so the root
   `pubspec.lock` is updated too.
 - **SDK sync:** Flutter SDK bumps run the sync script (see below), then `flutter pub get`.
-- **Gradle managers are off:** they propose versions above what the Flutter SDK supports. The sync script replaces them.
+- **Gradle updates are on, except Flutter-owned tooling:** the wrapper, AGP, the Kotlin plugins and libraries
+  (`org.jetbrains.kotlin.*`, `org.jetbrains.kotlin:*`) and `dev.flutter.*`. Generic updates propose versions above
+  what the Flutter SDK supports; the sync script handles the wrapper, AGP and `org.jetbrains.kotlin.android`. Other
+  Kotlin plugins (`org.jetbrains.kotlin.plugin.*`) and `kotlin-stdlib` are skipped but not synced: bump them by hand
+  with Kotlin. Other plugins and libraries (Firebase, kotlinx, ...) get normal PRs that wait for review.
 - **Own releases** (`proto_codecare`, `proto_codecare_scripts`) skip the 7-day age gate; patches automerge.
 
 ## Allowlist rules
