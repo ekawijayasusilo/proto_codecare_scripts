@@ -12,6 +12,8 @@ Applies standard settings to an existing **public** GitHub repo: squash-only mer
 
 `--required-checks "build / build,lint"` sets the `main` ruleset's required status checks to exactly that list. Names are check names as shown on a PR, and all are expected from GitHub Actions. Leave the flag out to keep the current checks. The script can't remove checks; do that in the UI.
 
+> **Warning:** Don't use `--codeql` (default setup) on a repo that ships its own CodeQL workflow (advanced setup, e.g. swe_flutter_template's `codeql.yaml`). The two conflict and the workflow's SARIF uploads fail.
+
 `--code-scanning-gate` adds a `code_scanning` rule to the `main` ruleset: PRs with new **high or critical** CodeQL security alerts (or CodeQL errors) can't merge. CodeQL must run on PRs, either through `--codeql` or the repo's own CodeQL workflow; otherwise PRs wait for results. Leave the flag out to keep the current rule. Don't add other SARIF uploaders, e.g. Scorecard, as gating tools.
 
 > **Warning:** A required check must run on every PR. If its workflow has a `paths:` filter, PRs that don't touch those paths wait forever.

@@ -24,6 +24,8 @@ With --yes (or no terminal) their defaults are used instead.
                              + security updates
   --[no-]secret-scanning     Secret scanning + push protection       (default: yes)
   --[no-]codeql              CodeQL default setup                    (default: no)
+                             Not with a CodeQL workflow (advanced
+                             setup): they conflict, uploads fail
   --[no-]code-scanning-gate  Block merges on high/critical CodeQL    (default: no)
                              alerts. Needs CodeQL running on PRs
   --[no-]tag-protection      Protect v* tags from delete/move        (default: no)
@@ -294,7 +296,7 @@ main() {
   ask_bool CODEOWNERS "Require code owner review? (y/n)" n
   ask_bool DEPENDABOT "Enable dependency graph + Dependabot alerts + security updates? (y/n)" y
   ask_bool SECRET_SCANNING "Enable secret scanning + push protection? (y/n)" y
-  ask_bool CODEQL "Enable CodeQL default setup? (y/n)" n
+  ask_bool CODEQL "Enable CodeQL default setup? Say n if the repo has a CodeQL workflow. (y/n)" n
   ask_bool CODE_SCANNING_GATE "Block merges on high/critical CodeQL alerts? (y/n)" n
   ask_bool TAG_PROTECTION "Protect v* release tags? (y/n)" n
   ask REQUIRED_CHECKS "Required status checks, comma-separated (blank = keep current)?" ""
