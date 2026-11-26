@@ -6,6 +6,8 @@ set -Eeuo pipefail
 MAIN_RULESET="main-branch"
 TAG_RULESET="release-tags"
 ADMIN_BYPASS='[{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]'
+# shortcut: every required check is expected from GitHub Actions; add a per-check app id if another app's check is needed.
+ACTIONS_APP_ID=15368
 
 usage() {
   cat <<'EOF'
@@ -23,6 +25,9 @@ With --yes (or no terminal) their defaults are used instead.
   --[no-]secret-scanning     Secret scanning + push protection       (default: yes)
   --[no-]codeql              CodeQL default setup                    (default: no)
   --[no-]tag-protection      Protect v* tags from delete/move        (default: no)
+  --required-checks "A,B"    Required status checks: GitHub Actions  (default: keep current)
+                             check names, set exactly
+                             e.g. "build / build,lint"
   --secrets-file PATH        Upload secrets/variables (format: .env.github.example)
   -y, --yes                  Don't prompt
   -h, --help                 Show this help
@@ -134,11 +139,32 @@ upsert_ruleset() { # NAME JSON
   gh api -X PUT "repos/$REPO/rulesets/$id" --input - --silent <<<"$merged"
 }
 
+# checks_json "a, b / c": required_status_checks items, names trimmed and JSON-escaped.
+checks_json() {
+  local c list=() out=""
+  IFS=, read -ra list <<<"$1"
+  for c in "${list[@]}"; do
+    read -r c <<<"$c" # trims surrounding whitespace
+    [[ -n $c ]] || continue
+    c=${c//\\/\\\\}
+    c=${c//\"/\\\"}
+    out+="${out:+, }{\"context\": \"$c\", \"integration_id\": $ACTIONS_APP_ID}"
+  done
+  echo "[$out]"
+}
+
 main_ruleset() { # WITH_MERGE_QUEUE(true|false)
   # Stale-approval guards only mean something when approvals are required;
   # with 0 approvals they could block a solo maintainer.
-  local guards=false merge_queue=""
+  local guards=false merge_queue="" checks=""
   if ((APPROVALS > 0)); then guards=true; fi
+  # Left out, the current checks are kept by upsert_ruleset.
+  if [[ -n $REQUIRED_CHECKS ]]; then
+    checks=',
+    {"type": "required_status_checks", "parameters": {
+      "strict_required_status_checks_policy": false,
+      "required_status_checks": '"$(checks_json "$REQUIRED_CHECKS")"'}}'
+  fi
   if $1; then
     # GitHub's UI defaults.
     merge_queue=',
@@ -163,7 +189,7 @@ main_ruleset() { # WITH_MERGE_QUEUE(true|false)
       "dismiss_stale_reviews_on_push": $guards,
       "require_last_push_approval": $guards,
       "required_review_thread_resolution": true,
-      "allowed_merge_methods": ["squash"]}}$merge_queue
+      "allowed_merge_methods": ["squash"]}}$checks$merge_queue
   ]
 }
 EOF
@@ -210,7 +236,7 @@ setup_main_ruleset() {
 }
 
 main() {
-  REPO="" TEMPLATE="" APPROVALS="" CODEOWNERS="" DEPENDABOT="" SECRET_SCANNING="" CODEQL="" TAG_PROTECTION="" SECRETS_FILE="" YES=false
+  REPO="" TEMPLATE="" APPROVALS="" CODEOWNERS="" DEPENDABOT="" SECRET_SCANNING="" CODEQL="" TAG_PROTECTION="" REQUIRED_CHECKS="" SECRETS_FILE="" YES=false
   local secrets_flag=false
   while (($#)); do
     case $1 in
@@ -228,6 +254,7 @@ main() {
       --no-codeql) CODEQL=false ;;
       --tag-protection) TAG_PROTECTION=true ;;
       --no-tag-protection) TAG_PROTECTION=false ;;
+      --required-checks) REQUIRED_CHECKS=${2:?--required-checks needs a value}; shift ;;
       --secrets-file) SECRETS_FILE=${2:?--secrets-file needs a value}; secrets_flag=true; shift ;;
       -y | --yes) YES=true ;;
       -h | --help) usage; exit 0 ;;
@@ -260,6 +287,10 @@ main() {
   ask_bool SECRET_SCANNING "Enable secret scanning + push protection? (y/n)" y
   ask_bool CODEQL "Enable CodeQL default setup? (y/n)" n
   ask_bool TAG_PROTECTION "Protect v* release tags? (y/n)" n
+  ask REQUIRED_CHECKS "Required status checks, comma-separated (blank = keep current)?" ""
+  if [[ -n $REQUIRED_CHECKS && $REQUIRED_CHECKS != *[![:space:],]* ]]; then
+    die "--required-checks: no check names in '$REQUIRED_CHECKS'"
+  fi
   if ! $secrets_flag; then ask SECRETS_FILE "Secrets file path (blank to skip)?" ""; fi
   # Validate the whole file before touching the repo, so a typo can't cause a half-applied run.
   if [[ -n $SECRETS_FILE ]]; then parse_secrets_file "$SECRETS_FILE"; fi

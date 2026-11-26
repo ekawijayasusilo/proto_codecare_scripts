@@ -10,6 +10,10 @@ Applies standard settings to an existing **public** GitHub repo: squash-only mer
 
 `--dependabot` (on by default) also enables the **dependency graph**. GitHub's API has no separate switch for it: the graph comes with Dependabot alerts.
 
+`--required-checks "build / build,lint"` sets the `main` ruleset's required status checks to exactly that list. Names are check names as shown on a PR, and all are expected from GitHub Actions. Leave the flag out to keep the current checks. The script can't remove checks; do that in the UI.
+
+> **Warning:** A required check must run on every PR. If its workflow has a `paths:` filter, PRs that don't touch those paths wait forever.
+
 > **Note:** Re-running rewrites the rules the script sets from the flags given. Options you leave out fall back to their defaults (e.g. 0 approvals), so pass the same flags each time. Rules the script doesn't set (e.g. required checks added in the UI) and parameters it doesn't send are kept.
 
 ## Files
