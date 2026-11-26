@@ -78,6 +78,21 @@ commands without a shell (no pipes), which is why the sync script is downloaded 
 > **Warning:** a new command in a preset needs its regex in `allowedCommands` **in the same release**. Otherwise
 > Renovate refuses to run it. Adding commands never breaks older presets.
 
+## GitHub Actions lockfile (`actions.lock`)
+
+Repos that commit `.github/workflows/actions.lock` (e.g. swe_flutter_template) need no extra config or runner setup.
+
+- Renovate's `github-actions` manager regenerates the lockfile on every actions bump, but only if the file exists. It
+  installs the `gh-actions-lock` extension itself and authenticates with the runner's GitHub App token. It isn't a
+  `postUpgradeTasks` command, so `allowedCommands` doesn't change.
+- Needs Renovate **44.176.3 or later** (fixes "Ref changed" failures on version bumps). The runner already uses a newer
+  version. Renovate marks the feature **experimental**.
+- **Don't** add `helpers:pinGitHubActionDigests` to these presets. The lockfile holds the SHAs and the YAML keeps tags,
+  and digest pinning works against that.
+- Not yet verified on a client repo: that a bump PR includes the updated `actions.lock` and passes
+  `gh actions-lock --verify`, that `@<sha> # vX.Y.Z` reusable-workflow refs get digest and comment updates, and whether
+  Dependabot **security** PRs regenerate the lockfile. If they don't, run `gh actions-lock --relock` on the PR branch.
+
 ## Android sync script
 
 `scripts/sync-android-tooling.sh` raises three versions in a Flutter client to what the pinned Flutter SDK's app
