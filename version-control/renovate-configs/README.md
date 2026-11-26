@@ -2,7 +2,7 @@
 
 Shared Renovate policy for all Proto CodeCare client repos. The Renovate runner workflow lives in
 [`proto_codecare`](https://github.com/ekawijayasusilo/proto_codecare). This folder holds what it uses: the presets client
-repos extend, the runner's global config, and the Android tooling sync script.
+repos extend, the runner's global config, and the SDK sync script.
 
 ```txt
 renovate-configs/
@@ -32,20 +32,25 @@ A Flutter repo can copy [`examples/flutter-app.renovate.json5`](examples/flutter
 | `default.json` | preset | Entry point: `base` + `github-actions` | Every repo |
 | `base.json` | preset | Shared policy: `config:recommended`, semantic commits, schedule (before 6am Jakarta), 7-day age, dashboard, alerts | Via `default` |
 | `github-actions.json` | preset | Own `proto_codecare` / `proto_codecare_scripts` refs: patch automerge, no age gate | Via `default` |
-| `flutter.json5` | preset | Flutter rules: SDK group, workspace lockfile fix, Android tooling sync, Gradle off. Extends `dart` | Flutter apps and packages |
+| `flutter.json5` | preset | Flutter rules: SDK group, workspace lockfile fix, SDK sync, Gradle on except Flutter-owned tooling. Extends `dart` | Flutter apps and packages |
 | `dart.json` | preset | Dart rules: pin, test-utility automerge, package-family groups. Extends `allowlist` | Pure Dart repos (Flutter repos get it via `flutter`) |
 | `allowlist.json` | preset | Named pub packages whose patch/minor updates automerge | Via `dart` |
 | `runner.json` | **global** preset | Runner-only options incl. `allowedCommands` | Only the runner, via `globalExtends`. Never in `extends` |
-| `scripts/sync-android-tooling.sh` | script | Bumps AGP / Kotlin / Gradle to the Flutter SDK's template versions | Run by `flutter.json5`; or by hand after a manual Flutter bump |
+| `scripts/sync-android-tooling.sh` | script | Sets the Dart SDK pin to the Dart bundled with the Flutter SDK; bumps AGP / Kotlin / Gradle to its template versions | Run by `flutter.json5`; or by hand after a manual Flutter bump |
 
 Notable behaviour:
 
-- **Dart + Flutter SDK** bumps come in one PR (`renovate/dart-and-flutter-sdk`), never automerged, no age gate. Check
-  by hand that the Dart version matches the one bundled with the new Flutter.
+- **Flutter SDK** bumps come in one PR (`renovate/dart-and-flutter-sdk`), never automerged, no age gate. The Dart SDK
+  pin follows automatically: the sync script sets it to the Dart version bundled with the new Flutter. Dart-only
+  releases (such as a hotfix) are skipped until a Flutter release bundles them.
 - **Pub workspaces:** after any pub bump Renovate runs `flutter pub get` in the package's folder, so the root
   `pubspec.lock` is updated too.
-- **Android sync:** Flutter SDK bumps also run the sync script (see below).
-- **Gradle managers are off:** they propose versions above what the Flutter SDK supports. The sync script replaces them.
+- **SDK sync:** Flutter SDK bumps run the sync script (see below), then `flutter pub get`.
+- **Gradle updates are on, except Flutter-owned tooling:** the wrapper, AGP, the Kotlin plugins and libraries
+  (`org.jetbrains.kotlin.*`, `org.jetbrains.kotlin:*`) and `dev.flutter.*`. Generic updates propose versions above
+  what the Flutter SDK supports; the sync script handles the wrapper, AGP and `org.jetbrains.kotlin.android`. Other
+  Kotlin plugins (`org.jetbrains.kotlin.plugin.*`) and `kotlin-stdlib` are skipped but not synced: bump them by hand
+  with Kotlin. Other plugins and libraries (Firebase, kotlinx, ...) get normal PRs that wait for review.
 - **Own releases** (`proto_codecare`, `proto_codecare_scripts`) skip the 7-day age gate; patches automerge.
 
 ## Allowlist rules
@@ -93,10 +98,19 @@ Repos that commit `.github/workflows/actions.lock` (e.g. swe_flutter_template) n
   `gh actions-lock --verify`, that `@<sha> # vX.Y.Z` reusable-workflow refs get digest and comment updates, and whether
   Dependabot **security** PRs regenerate the lockfile. If they don't, run `gh actions-lock --relock` on the PR branch.
 
-## Android sync script
+## SDK sync script
 
-`scripts/sync-android-tooling.sh` raises three versions in a Flutter client to what the pinned Flutter SDK's app
-template uses. The source of truth is
+`scripts/sync-android-tooling.sh` syncs a Flutter client to its pinned Flutter SDK. The Android-only name is kept:
+`runner.json`'s `allowedCommands` match it.
+
+**Dart.** In every tracked `pubspec.yaml` with an exact `environment.flutter` pin, it sets an exact `environment.sdk`
+to the Dart version that Flutter release bundles (`dart_sdk_version` of the stable entry in
+`https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json`). It sets the version even when
+that is lower, since Dart must equal the bundled one. All pubspecs are fixed in one run because `flutter pub get` in a
+workspace resolves every member. A range such as `^3.14.0` is left alone, and so is a pubspec without a Flutter pin
+(a pure-Dart workspace member). A Flutter version missing from the file fails the script.
+
+**Android.** It raises three versions to what the pinned Flutter SDK's app template uses. The source of truth is
 `flutter/flutter/<version>/packages/flutter_tools/lib/src/android/gradle_utils.dart`.
 
 | Flutter constant | Updates |
@@ -105,15 +119,19 @@ template uses. The source of truth is
 | `templateKotlinGradlePluginVersion` | `org.jetbrains.kotlin.android` in `android/settings.gradle.kts` |
 | `templateDefaultGradleVersion` | `distributionUrl` in `android/gradle/wrapper/gradle-wrapper.properties` |
 
-- Reads the exact `environment.flutter` pin from the root `pubspec.yaml`. Works from any folder in the repo.
-- Only raises versions, so a newer manual bump is kept. Re-running is a no-op.
-- Skips repos without `android/`. Fails, with a message, on Groovy-only builds, a missing pattern, a renamed Flutter
-  constant or a pinned `distributionSha256Sum`. Renovate then shows an "artifact update problem" on the PR.
+- The Android part reads the exact `environment.flutter` pin from the root `pubspec.yaml`. Works from any folder in
+  the repo.
+- Only raises Android versions, so a newer manual bump is kept. Re-running is a no-op.
+- Skips the Android part in repos without `android/`. Fails, with a message, on Groovy-only builds, a missing
+  pattern, a renamed Flutter constant or a pinned `distributionSha256Sum`. Renovate then shows an "artifact update
+  problem" on the PR.
 
-Local use after a manual Flutter bump, from the client repo:
+Local use after a manual Flutter bump, from the client repo. Run `flutter pub get` afterwards: the Dart pin may
+have changed.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ekawijayasusilo/proto_codecare_scripts/vX.Y.Z/version-control/renovate-configs/scripts/sync-android-tooling.sh | bash
+flutter pub get
 ```
 
 > **Warning:** a version bump alone isn't always enough. AGP 9 also needs build-script changes (drop

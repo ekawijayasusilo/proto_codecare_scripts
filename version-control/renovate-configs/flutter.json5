@@ -3,11 +3,16 @@
   extends: ["./dart"],
   packageRules: [
     {
-      description: "Update the exact Dart and Flutter SDK pins in one PR: either one alone fails pub get. No age gate for either: the dart-version datasource has no release timestamps, and gating only Flutter would let Dart arrive alone first. Review manually that the Dart version matches the one bundled with the new Flutter.",
-      matchDatasources: ["dart-version", "flutter-version"],
+      description: "Flutter SDK pin updates. The Dart SDK pin follows in the same PR: the sync script sets it to the Dart version bundled with the new Flutter. Group name kept so the PR branch stays renovate/dart-and-flutter-sdk. No age gate, never automerged.",
+      matchDatasources: ["flutter-version"],
       groupName: "dart and flutter sdk",
       automerge: false,
       minimumReleaseAge: null,
+    },
+    {
+      description: "No Dart SDK updates from Dart's own release feed: a Dart-only hotfix (3.14.1) that no Flutter release bundles yet fails pub get. The sync script sets the Dart pin on Flutter bumps instead.",
+      matchDatasources: ["dart-version"],
+      enabled: false,
     },
     {
       description: "Renovate only updates a pubspec.lock next to the changed pubspec.yaml, so bumps in pub workspace members leave the root lockfile stale. Re-resolve from the package's directory (pub resolves the whole workspace from any member). Commands must be allowed in runner.json.",
@@ -20,16 +25,17 @@
       },
     },
     {
-      description: "Flutter SDK bumps also sync Android tooling (AGP, Kotlin, Gradle) to the new SDK's template versions. This rule must repeat the pub get command: a later rule's commands replace the earlier list. Runs once per pubspec with the pin; the script is idempotent. Commands must be allowed in runner.json.",
+      description: "Flutter SDK bumps also sync the Dart SDK pin in every pubspec (to the Dart bundled with the new Flutter) and Android tooling (AGP, Kotlin, Gradle) to the new SDK's template versions. pub get runs last: it fails until the Dart pin matches. This rule must repeat the pub get command: a later rule's commands replace the earlier list. Runs once per pubspec with the pin; the script is idempotent. Commands must be allowed in runner.json.",
       matchDatasources: ["flutter-version"],
       postUpgradeTasks: {
         commands: [
-          "flutter pub get",
           "curl -fsSL -o /tmp/sync-android-tooling.sh https://raw.githubusercontent.com/ekawijayasusilo/proto_codecare_scripts/v1.0.0/version-control/renovate-configs/scripts/sync-android-tooling.sh", // x-release-please-version
           "bash /tmp/sync-android-tooling.sh",
+          "flutter pub get",
         ],
         workingDirTemplate: "{{packageFileDir}}",
         fileFilters: [
+          "**/pubspec.yaml",
           "**/pubspec.lock",
           "android/settings.gradle.kts",
           "android/gradle/wrapper/gradle-wrapper.properties",
@@ -38,8 +44,21 @@
       },
     },
     {
-      description: "Generic Gradle updates ignore the range the Flutter SDK supports (they proposed AGP 9.5 / Kotlin 2.4.21 / Gradle 9.8.2 for Flutter 3.47, all above its maximum). Android tooling is synced by the rule above instead.",
-      matchManagers: ["gradle", "gradle-wrapper"],
+      description: "The Gradle wrapper is synced to the Flutter SDK's template version by the rule above. Generic updates ignore the range Flutter supports (they proposed Gradle 9.8.2 for Flutter 3.47, above its maximum).",
+      matchManagers: ["gradle-wrapper"],
+      enabled: false,
+    },
+    {
+      description: "Gradle updates stay on except for what the Flutter SDK dictates. AGP and org.jetbrains.kotlin.android are synced by the rule above (generic updates proposed AGP 9.5 / Kotlin 2.4.21 for Flutter 3.47, above its maximum). Other Kotlin plugins and libraries (org.jetbrains.kotlin.plugin.*, kotlin-stdlib) are skipped too but not synced: bump them by hand with Kotlin. dev.flutter.* ships with the Flutter SDK and has no Maven release.",
+      matchManagers: ["gradle"],
+      matchDepNames: [
+        "com.android.application",
+        "com.android.library",
+        "com.android.tools.build:gradle",
+        "org.jetbrains.kotlin.*",
+        "org.jetbrains.kotlin:*",
+        "dev.flutter.*",
+      ],
       enabled: false,
     },
   ],
