@@ -112,14 +112,26 @@ parse_secrets_file() {
 }
 
 # --- rulesets ---------------------------------------------------------------
+# On update, carry over rules this script doesn't set (e.g. required checks added in the UI) and
+# parameters it doesn't send. jq's * merges objects but replaces arrays, so lists from flags stay exact.
+# shellcheck disable=SC2016
+MERGE_RULES='. as $old | ($new.rules | map(.type)) as $types
+  | [$old.rules[] | select(.type | IN($types[]) | not)] as $keep
+  | ($keep | map(.type) | join(", ")),
+    ($new | .rules = [.rules[] | . as $r | ([$old.rules[] | select(.type == $r.type)][0] // {}) * $r] + $keep | tojson)'
+
 upsert_ruleset() { # NAME JSON
-  local id
+  local id out kept merged
   id=$(gh api --paginate "repos/$REPO/rulesets?includes_parents=false" --jq ".[] | select(.name == \"$1\") | .id")
-  if [[ -n $id ]]; then
-    gh api -X PUT "repos/$REPO/rulesets/$id" --input - --silent <<<"$2"
-  else
+  if [[ -z $id ]]; then
     gh api -X POST "repos/$REPO/rulesets" --input - --silent <<<"$2"
+    return 0
   fi
+  # The ruleset JSON is a valid jq literal, so gh's built-in jq does the merge (no jq install needed).
+  out=$(gh api "repos/$REPO/rulesets/$id" --jq "$2 as \$new | $MERGE_RULES")
+  { read -r kept; read -r merged; } <<<"$out"
+  if [[ -n $kept ]]; then echo "  Kept rules not set by this script: $kept"; fi
+  gh api -X PUT "repos/$REPO/rulesets/$id" --input - --silent <<<"$merged"
 }
 
 main_ruleset() { # WITH_MERGE_QUEUE(true|false)

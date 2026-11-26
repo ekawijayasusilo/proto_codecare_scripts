@@ -10,7 +10,7 @@ Applies standard settings to an existing **public** GitHub repo: squash-only mer
 
 `--dependabot` (on by default) also enables the **dependency graph**. GitHub's API has no separate switch for it: the graph comes with Dependabot alerts.
 
-> **Note:** Re-running rewrites the rulesets from the flags given. Options you leave out fall back to their defaults (e.g. 0 approvals), so pass the same flags each time.
+> **Note:** Re-running rewrites the rules the script sets from the flags given. Options you leave out fall back to their defaults (e.g. 0 approvals), so pass the same flags each time. Rules the script doesn't set (e.g. required checks added in the UI) and parameters it doesn't send are kept.
 
 ## Files
 
@@ -18,3 +18,4 @@ Applies standard settings to an existing **public** GitHub repo: squash-only mer
 |---|---|
 | `setup-github-repo.sh` | The script |
 | `.env.github.example` | Secrets/variables file format. Copy to `.env.github` (gitignored) |
+| `tests/test-setup-github-repo.sh` | Offline test using a stub `gh` (needs `jq`): `bash tests/test-setup-github-repo.sh` |
