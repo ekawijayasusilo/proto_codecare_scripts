@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/ekawijayasusilo/proto_codecare_scripts/compare/v1.1.0...v1.1.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* **renovate-configs:** skip Renovate's lockfile update on Flutter SDK bumps ([47d2dee](https://github.com/ekawijayasusilo/proto_codecare_scripts/commit/47d2dee775432b4e3fcd9467bae5deb1efb742f6))
+
 ## [1.1.0](https://github.com/ekawijayasusilo/proto_codecare_scripts/compare/v1.0.0...v1.1.0) (2026-11-26)
 
 
