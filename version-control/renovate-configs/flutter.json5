@@ -27,6 +27,9 @@
     {
       description: "Flutter SDK bumps also sync the Dart SDK pin in every pubspec (to the Dart bundled with the new Flutter) and Android tooling (AGP, Kotlin, Gradle) to the new SDK's template versions. pub get runs last: it fails until the Dart pin matches. This rule must repeat the pub get command: a later rule's commands replace the earlier list. Runs once per pubspec with the pin; the script is idempotent. Commands must be allowed in runner.json.",
       matchDatasources: ["flutter-version"],
+      // Renovate's own pubspec.lock update runs before these commands, while the Dart pin is still the old one, so it
+      // always fails ("Artifact update problem"). The pub get below produces the lockfile instead.
+      skipArtifactsUpdate: true,
       postUpgradeTasks: {
         commands: [
           "curl -fsSL -o /tmp/sync-android-tooling.sh https://raw.githubusercontent.com/ekawijayasusilo/proto_codecare_scripts/v1.1.0/version-control/renovate-configs/scripts/sync-android-tooling.sh", // x-release-please-version
